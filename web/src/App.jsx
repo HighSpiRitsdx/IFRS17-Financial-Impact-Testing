@@ -42,7 +42,9 @@ const NAV_ITEMS = [
   ...Object.keys(NODE_DEFAULTS).map((n) => ({ key: n, label: NODE_TITLES[n] })),
 ];
 
-const COLORS = ["#2f6fed", "#00a76f", "#f59f00", "#5f3dc4", "#e8590c", "#20c997", "#fa5252"];
+const COLORS = ["#64748b", "#7c8aa5", "#8aa399", "#a18bbd", "#b7967d", "#6f8f98", "#b38a8a"];
+const COMPARE_BAR_PALETTE = ["#6f86ad", "#b68b73", "#8a9f95", "#9b86b8"];
+const COMPARE_LINE_PALETTE = ["#5f7598", "#9e765f", "#708a7f", "#866fa7"];
 
 function buildScenarioCaption(scenarios) {
   if (!scenarios || !scenarios.length) return "暂无";
@@ -343,8 +345,11 @@ export default function App() {
     <div className={`app-shell ${activeTab === "attribution" ? "no-right-sidebar" : ""}`.trim()}>
       <aside className="left-nav">
         <div className="brand">
-          <div className="brand-title">IFRS17财务影响测试平台</div>
-          <div className="brand-subtitle">开发者 KPMG 王涵</div>
+          <img className="brand-logo" src="/logo.png" alt="IFRS17 财务影响测试平台 Logo" />
+          <div className="brand-text">
+            <div className="brand-title">IFRS17财务影响测试平台</div>
+            <div className="brand-subtitle">开发者：KPMG 王涵</div>
+          </div>
         </div>
 
         <div className="upload-box">
@@ -510,7 +515,7 @@ function FinalReportPanel({ scenarios, activeScenario, activeScenarioId, setActi
           />
 
           <details className="collapse" open={highlightTarget?.section === "node"}>
-            <summary>Node 月度输出（默认折叠）</summary>
+            <summary>Node 月度输出</summary>
             <DataTable
               rows={nodeRows}
               hideZeroColumns
@@ -696,15 +701,15 @@ function ChartsPanel({
         </div>
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={annualIncomeExpenseProfitData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dbe6f5" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis dataKey="period" />
             <YAxis yAxisId="left" tickFormatter={annualIncomeAxis.formatter} />
             <YAxis yAxisId="right" orientation="right" tickFormatter={annualIncomeAxis.formatter} />
             <Tooltip formatter={(value) => formatCell(value, "图表")} />
             <Legend />
-            <Bar yAxisId="left" dataKey="annual_income_excluding_investment" barSize={40} fill="#4c6ef5" name="收入（不含投资收益）" onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["actual_claim_income", "csm_release_income"] })} />
-            <Bar yAxisId="left" dataKey="annual_expense_only_claim_and_loss" barSize={40} fill="#f59f00" name="支出" onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["expected_claim_expense"] })} />
-            <Line yAxisId="right" type="monotone" dataKey="annual_profit" stroke="#12b886" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["net_income"] }))} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["net_income"] }), 6)} name="年度利润" onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["net_income"] })} />
+            <Bar yAxisId="left" dataKey="annual_income_excluding_investment" barSize={40} fill="#7386a8" name="收入（不含投资收益）" onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["actual_claim_income", "csm_release_income"] })} />
+            <Bar yAxisId="left" dataKey="annual_expense_only_claim_and_loss" barSize={40} fill="#b89a76" name="支出" onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["expected_claim_expense"] })} />
+            <Line yAxisId="right" type="monotone" dataKey="annual_profit" stroke="#7b9b8d" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["net_income"] }))} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["net_income"] }), 6)} name="年度利润" onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["net_income"] })} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -717,11 +722,11 @@ function ChartsPanel({
           </div>
           <ResponsiveContainer width="100%" height={270}>
             <LineChart data={annualCsmTrendData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dbe6f5" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="period" />
               <YAxis tickFormatter={csmAxis.formatter} />
               <Tooltip formatter={(value) => formatCell(value, "图表")} />
-              <Line type="monotone" dataKey="csm_balance" stroke="#7c3aed" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "bs", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["reinsurance_contract_assets_csm"] }))} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "bs", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["reinsurance_contract_assets_csm"] }), 6)} name="CSM余额" onClick={(data) => onNavigateToReport?.({ section: "bs", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["reinsurance_contract_assets_csm"] })} />
+              <Line type="monotone" dataKey="csm_balance" stroke="#8c80b5" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "bs", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["reinsurance_contract_assets_csm"] }))} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "bs", scenarioId: latestScenario?.id, period: payload.period, rowKeys: ["reinsurance_contract_assets_csm"] }), 6)} name="CSM余额" onClick={(data) => onNavigateToReport?.({ section: "bs", scenarioId: latestScenario?.id, period: data.period, rowKeys: ["reinsurance_contract_assets_csm"] })} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -733,13 +738,13 @@ function ChartsPanel({
           </div>
           <ResponsiveContainer width="100%" height={270}>
             <LineChart data={monthlyBelTrendData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dbe6f5" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="period" />
               <YAxis tickFormatter={belAxis.formatter} />
               <Tooltip formatter={(value) => formatCell(value, "图表")} />
               <Legend />
-              <Line type="monotone" dataKey="bel_locked" stroke="#f76707" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_locked"] }), 3.5)} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_locked"] }), 6)} name="BEL(锁定)" onClick={(data) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: data.monthIndex, fieldKeys: ["bel_locked"] })} />
-              <Line type="monotone" dataKey="bel_current" stroke="#4c6ef5" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_current"] }), 3.5)} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_current"] }), 6)} name="BEL(当期)" onClick={(data) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: data.monthIndex, fieldKeys: ["bel_current"] })} />
+              <Line type="monotone" dataKey="bel_locked" stroke="#b78a6b" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_locked"] }), 3.5)} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_locked"] }), 6)} name="BEL(锁定)" onClick={(data) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: data.monthIndex, fieldKeys: ["bel_locked"] })} />
+              <Line type="monotone" dataKey="bel_current" stroke="#7386a8" strokeWidth={4} dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_current"] }), 3.5)} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: payload.monthIndex, fieldKeys: ["bel_current"] }), 6)} name="BEL(当期)" onClick={(data) => onNavigateToReport?.({ section: "node", scenarioId: latestScenario?.id, monthIndex: data.monthIndex, fieldKeys: ["bel_current"] })} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -753,13 +758,13 @@ function ChartsPanel({
           </div>
           <ResponsiveContainer width="100%" height={290}>
             <BarChart data={annualProfitCompareData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dbe6f5" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="period" />
               <YAxis tickFormatter={profitAxis.formatter} />
               <Tooltip formatter={(value) => formatCell(value, "图表")} />
               <Legend />
               {compareScenarios.map((scenario, index) => (
-                <Bar key={scenario.id} dataKey={`${scenario.name}_net_profit`} fill={COLORS[index % COLORS.length]} name={`${scenario.name} 净利润`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["net_income"] })} />
+                <Bar key={scenario.id} dataKey={`${scenario.name}_net_profit`} fill={COMPARE_BAR_PALETTE[index % COMPARE_BAR_PALETTE.length]} name={`${scenario.name} 净利润`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["net_income"] })} />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -772,7 +777,7 @@ function ChartsPanel({
           </div>
           <ResponsiveContainer width="100%" height={290}>
             <LineChart data={annualNetAssetsCompareData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dbe6f5" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="period" />
               <YAxis tickFormatter={netAssetsAxis.formatter} />
               <Tooltip formatter={(value) => formatCell(value, "图表")} />
@@ -792,20 +797,20 @@ function ChartsPanel({
         </div>
         <ResponsiveContainer width="100%" height={320}>
           <ComposedChart data={annualInvestmentVsInterestData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dbe6f5" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis dataKey="period" />
             <YAxis yAxisId="left" tickFormatter={invInterestAxis.formatter} />
             <YAxis yAxisId="right" orientation="right" tickFormatter={invInterestAxis.formatter} />
             <Tooltip formatter={(value) => formatCell(value, "图表")} />
             <Legend />
             {compareScenarios.map((scenario, index) => (
-              <Bar key={`${scenario.id}-investment`} yAxisId="left" dataKey={`${scenario.name}_investment_return`} fill={COLORS[(index * 2) % COLORS.length]} name={`${scenario.name} 投资收益`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["investment_return_income"] })} />
+              <Bar key={`${scenario.id}-investment`} yAxisId="left" dataKey={`${scenario.name}_investment_return`} fill={COMPARE_BAR_PALETTE[(index * 2) % COMPARE_BAR_PALETTE.length]} name={`${scenario.name} 投资收益`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["investment_return_income"] })} />
             ))}
             {compareScenarios.map((scenario, index) => (
-              <Bar key={`${scenario.id}-interest`} yAxisId="left" dataKey={`${scenario.name}_interest`} fill={COLORS[(index * 2 + 1) % COLORS.length]} name={`${scenario.name} 利息`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["csm_interest_expense", "bel_locked_interest_expense"] })} />
+              <Bar key={`${scenario.id}-interest`} yAxisId="left" dataKey={`${scenario.name}_interest`} fill={COMPARE_BAR_PALETTE[(index * 2 + 1) % COMPARE_BAR_PALETTE.length]} name={`${scenario.name} 利息`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["csm_interest_expense", "bel_locked_interest_expense"] })} />
             ))}
             {compareScenarios.map((scenario, index) => (
-              <Line key={`${scenario.id}-spread`} yAxisId="right" type="monotone" dataKey={`${scenario.name}_spread`} stroke={COLORS[index % COLORS.length]} strokeWidth={4} strokeDasharray="5 5" dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: payload.period, rowKeys: ["investment_return_income", "csm_interest_expense", "bel_locked_interest_expense"] }))} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: payload.period, rowKeys: ["investment_return_income", "csm_interest_expense", "bel_locked_interest_expense"] }), 6)} name={`${scenario.name} 差额`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["investment_return_income", "csm_interest_expense", "bel_locked_interest_expense"] })} />
+              <Line key={`${scenario.id}-spread`} yAxisId="right" type="monotone" dataKey={`${scenario.name}_spread`} stroke={COMPARE_LINE_PALETTE[index % COMPARE_LINE_PALETTE.length]} strokeWidth={4} strokeDasharray="5 5" dot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: payload.period, rowKeys: ["investment_return_income", "csm_interest_expense", "bel_locked_interest_expense"] }))} activeDot={clickableDotFactory((payload) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: payload.period, rowKeys: ["investment_return_income", "csm_interest_expense", "bel_locked_interest_expense"] }), 6)} name={`${scenario.name} 差额`} onClick={(data) => onNavigateToReport?.({ section: "pl", scenarioId: scenario.id, period: data.period, rowKeys: ["investment_return_income", "csm_interest_expense", "bel_locked_interest_expense"] })} />
             ))}
           </ComposedChart>
         </ResponsiveContainer>
@@ -1417,7 +1422,7 @@ function WaterfallChart({ data, axisMax }) {
           const y = top + chartHeight - tick * scale;
           return (
             <g key={tick}>
-              <line x1={left} x2={width - right} y1={y} y2={y} stroke="#dbe6f5" />
+              <line x1={left} x2={width - right} y1={y} y2={y} stroke="#e2e8f0" />
               <text x={left - 10} y={y + 4} textAnchor="end" className="waterfall-axis-label">{formatShortValue(tick)}</text>
             </g>
           );
@@ -1425,7 +1430,7 @@ function WaterfallChart({ data, axisMax }) {
         {points.map((item) => (
           <g key={item.label}>
             <title>{`${item.label}: ${formatCell(item.value, item.label)}`}</title>
-            <rect x={item.x} y={item.y} width={barWidth} height={item.h} rx="2" fill="#9b63d9" opacity={item.type === 'total' ? 1 : 0.9} />
+            <rect x={item.x} y={item.y} width={barWidth} height={item.h} rx="2" fill="#9b8abc" opacity={item.type === 'total' ? 1 : 0.9} />
             <text x={item.x + barWidth / 2} y={item.value >= 0 ? item.y - 8 : item.y + item.h + 14} textAnchor="middle" className="waterfall-value">{formatShortValue(item.value)}</text>
             <text x={item.x + barWidth / 2} y={height - 18} textAnchor="middle" className="waterfall-label">{item.label}</text>
           </g>
@@ -1720,8 +1725,8 @@ function formatScenarioValue(key, value) {
 
 function formatScenarioRate(value) {
   const pct = Number(value || 0) * 100;
-  if (!Number.isFinite(pct)) return "0";
-  return Number.isInteger(pct) ? String(pct) : formatInputNumber(pct, 1);
+  if (!Number.isFinite(pct)) return "0.00";
+  return formatInputNumber(pct, 2);
 }
 
 function formatCell(value, column = "") {
@@ -1934,4 +1939,12 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     </>
   );
 });
+
+
+
+
+
+
+
+
 
