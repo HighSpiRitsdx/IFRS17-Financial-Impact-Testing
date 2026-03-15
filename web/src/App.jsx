@@ -136,8 +136,14 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([
-    "你可以在这里询问节点异常原因，或让 Copilot 给出参数建议。",
+    { role: "assistant", content: "你可以在这里询问节点异常原因，或让 Copilot 解释公式、节点和报表口径。" },
   ]);
+  const [chatError, setChatError] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const sessionId = useMemo(() => {
+    if (globalThis?.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    return `session-${Date.now()}`;
+  }, []);
 
   const previewState = useMemo(() => {
     if (!rawRows.length) return { results: null, error: "" };
@@ -328,13 +334,56 @@ export default function App() {
   }
 
   function sendChat() {
-    if (!chatInput.trim()) return;
-    setChatMessages((prev) => [
-      ...prev,
-      `你: ${chatInput.trim()}`,
-      "Copilot: 已收到。建议先添加场景并查看最终报表中的多场景差异。",
-    ]);
+    return sendChatAsync();
+  }
+
+  async function sendChatAsync() {
+    const question = chatInput.trim();
+    if (!question || chatLoading) return;
+
+    const history = chatMessages.filter((message) => message.role === "user" || message.role === "assistant");
+    const nextUserMessage = { role: "user", content: question };
+    const includeKnowledge = history.filter((message) => message.role === "user").length === 0;
+
+    setChatMessages((prev) => [...prev, nextUserMessage]);
     setChatInput("");
+    setChatError("");
+    setChatLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          includeKnowledge,
+          activeTab,
+          messages: [...history, nextUserMessage].map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || "问答服务调用失败");
+      }
+
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: payload.reply || "当前没有拿到模型回复。" },
+      ]);
+    } catch (error) {
+      const message = error.message || "问答服务调用失败";
+      setChatError(message);
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `当前未能完成问答：${message}` },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   }
 
   function downloadExcel() {
@@ -385,19 +434,29 @@ export default function App() {
       <main className="main-content">
         <section className="chatbox">
           <div className="chat-list">
-            {chatMessages.slice(-3).map((message, index) => (
-              <div key={index} className="chat-row">
-                {message}
+            {chatMessages.slice(-4).map((message, index) => (
+              <div key={index} className={`chat-row ${message.role || "assistant"}`}>
+                <div className="chat-role">{message.role === "user" ? "你" : "Copilot"}</div>
+                <div className="chat-content">{message.content}</div>
               </div>
             ))}
           </div>
+          {chatError ? <div className="chat-error">{chatError}</div> : null}
           <div className="chat-input-wrap">
             <input
               value={chatInput}
               onChange={(event) => setChatInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  sendChat();
+                }
+              }}
               placeholder="输入问题或调参意图..."
             />
-            <button onClick={sendChat}>发送</button>
+            <button onClick={sendChat} disabled={chatLoading}>
+              {chatLoading ? "思考中..." : "发送"}
+            </button>
           </div>
         </section>
 
@@ -1784,6 +1843,8 @@ function sumNumbers(...values) {
 function round2(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
+
+
 
 
 
