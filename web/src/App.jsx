@@ -33,6 +33,7 @@ import {
 } from "./lib/constants";
 import { exportScenarioWorkbook } from "./lib/exporter";
 import { findChangedVariables, runEngine } from "./lib/engine";
+import { buildChatTraceContext } from "./lib/chatTrace";
 
 const NAV_ITEMS = [
   { key: "final", label: "最终报表" },
@@ -43,10 +44,10 @@ const NAV_ITEMS = [
 
 const COLORS = ["#2f6fed", "#00a76f", "#f59f00", "#5f3dc4", "#e8590c", "#20c997", "#fa5252"];
 
-function buildScenarioCaption(scenarios, singleLabel = "当前情景") {
-  if (!scenarios || !scenarios.length) return `${singleLabel}：暂无`;
-  if (scenarios.length === 1) return `${singleLabel}：${scenarios[0].name}`;
-  return `对比情景：${scenarios.map((scenario) => scenario.name).join(" vs ")}`;
+function buildScenarioCaption(scenarios) {
+  if (!scenarios || !scenarios.length) return "暂无";
+  if (scenarios.length === 1) return scenarios[0].name;
+  return scenarios.map((scenario) => scenario.name).join(" vs ");
 }
 
 
@@ -136,10 +137,11 @@ export default function App() {
 
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([
-    { role: "assistant", content: "你可以在这里询问节点异常原因，或让 Copilot 解释公式、节点和报表口径。" },
+    { role: "assistant", content: "你可以在这里询问公式、节点、报表口径，或直接追问具体数字的计算来源" },
   ]);
   const [chatError, setChatError] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatExpanded, setChatExpanded] = useState(false);
   const sessionId = useMemo(() => {
     if (globalThis?.crypto?.randomUUID) return globalThis.crypto.randomUUID();
     return `session-${Date.now()}`;
@@ -262,7 +264,7 @@ export default function App() {
   }
 
   function buildScenarioName(nextGlobalVars) {
-    return `计息率${formatScenarioRate(nextGlobalVars.csmAccretionRateAnnual)}，释放率${formatScenarioRate(nextGlobalVars.csmAmortizationRateAnnual)}，收益率${formatScenarioRate(nextGlobalVars.investmentReturnRateAnnual)}`;
+    return `计息率${formatScenarioRate(nextGlobalVars.csmAccretionRateAnnual)}，释放率${formatScenarioRate(nextGlobalVars.csmAmortizationRateAnnual)}，收益率${formatScenarioRate(nextGlobalVars.investmentReturnRate)}`;
   }
   function runFromNode(nodeKey) {
     if (!rawRows.length) {
@@ -336,19 +338,20 @@ export default function App() {
   function sendChat() {
     return sendChatAsync();
   }
-
   async function sendChatAsync() {
     const question = chatInput.trim();
     if (!question || chatLoading) return;
 
     const history = chatMessages.filter((message) => message.role === "user" || message.role === "assistant");
     const nextUserMessage = { role: "user", content: question };
-    const includeKnowledge = history.filter((message) => message.role === "user").length === 0;
 
+    setChatExpanded(true);
     setChatMessages((prev) => [...prev, nextUserMessage]);
     setChatInput("");
     setChatError("");
     setChatLoading(true);
+
+    const traceContext = buildChatTraceContext(question, activeScenario);
 
     try {
       const response = await fetch("/api/chat", {
@@ -356,8 +359,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          includeKnowledge,
           activeTab,
+          traceContext,
           messages: [...history, nextUserMessage].map((message) => ({
             role: message.role,
             content: message.content,
@@ -385,6 +388,7 @@ export default function App() {
       setChatLoading(false);
     }
   }
+
 
   function downloadExcel() {
     if (!scenarios.length) return;
@@ -432,9 +436,16 @@ export default function App() {
       </aside>
 
       <main className="main-content">
-        <section className="chatbox">
+        {chatExpanded ? <div className="chatbox-backdrop" onClick={() => setChatExpanded(false)} /> : null}
+        <section className={`chatbox ${chatExpanded ? "expanded" : ""}`}>
+          <div className="chatbox-head">
+            <div className="chatbox-title">Actuarial Copilot</div>
+            <button type="button" className="chatbox-toggle" onClick={() => setChatExpanded((prev) => !prev)}>
+              {chatExpanded ? "收起" : "放大"}
+            </button>
+          </div>
           <div className="chat-list">
-            {chatMessages.slice(-4).map((message, index) => (
+            {chatMessages.slice(chatExpanded ? -12 : -4).map((message, index) => (
               <div key={index} className={`chat-row ${message.role || "assistant"}`}>
                 <div className="chat-role">{message.role === "user" ? "你" : "Copilot"}</div>
                 <div className="chat-content">{message.content}</div>
@@ -446,17 +457,21 @@ export default function App() {
             <input
               value={chatInput}
               onChange={(event) => setChatInput(event.target.value)}
+              onFocus={() => setChatExpanded(true)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
                   sendChat();
                 }
               }}
-              placeholder="输入问题或调参意图..."
+              placeholder="例如：Y2的CSM释放怎么来的？或 29,290,526 这个数字怎么来的？也支持 BEL @ CR、投资收益、综合收益总额。"
             />
             <button onClick={sendChat} disabled={chatLoading}>
               {chatLoading ? "思考中..." : "发送"}
             </button>
+          </div>
+          <div className="chat-helper">
+            当前优先支持：CSM释放、CSM计息、BEL(锁定)计息、OCI、净利润、净资产、BEL(当期)、BEL @ CR、投资收益、综合收益总额、CSM期末余额，也支持直接粘贴数字提问。
           </div>
         </section>
 
@@ -693,8 +708,8 @@ function ChartsPanel({
   const profitAxis = getAxisSpecFromRows(annualProfitCompareData, collectMetricKeys(annualProfitCompareData));
   const netAssetsAxis = getAxisSpecFromRows(annualNetAssetsCompareData, collectMetricKeys(annualNetAssetsCompareData));
   const invInterestAxis = getAxisSpecFromRows(annualInvestmentVsInterestData, collectMetricKeys(annualInvestmentVsInterestData));
-  const latestScenarioCaption = buildScenarioCaption(latestScenario ? [latestScenario] : [], "当前情景");
-  const compareScenarioCaption = buildScenarioCaption(compareScenarios, "当前情景");
+  const latestScenarioCaption = buildScenarioCaption(latestScenario ? [latestScenario] : []);
+  const compareScenarioCaption = buildScenarioCaption(compareScenarios);
 
 
   const commitMonthDraft = () => setChartMaxMonths(clampValue(monthDraft, 1, maxAvailableMonths));
@@ -1843,6 +1858,16 @@ function sumNumbers(...values) {
 function round2(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

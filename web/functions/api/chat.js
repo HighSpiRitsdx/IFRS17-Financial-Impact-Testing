@@ -1,17 +1,19 @@
 ﻿const DEFAULT_MODEL = "glm-4.6v-flashx";
 const DEFAULT_GLM_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-const DEFAULT_DOC_KEY = "ifrs17-engine-knowledge-base.md";
+const DEFAULT_DOC_KEY = "GLM.md";
 
 function buildSystemPrompt(activeTab) {
   const tabHint = activeTab ? `当前用户正在查看的页面是：${activeTab}。` : "";
   return [
     "你是 IFRS17 财务影响测试平台的内置问答助手。",
     tabHint,
-    "请优先依据系统提供的引擎知识文档回答问题，不要编造当前系统中不存在的规则。",
-    "如果问题超出当前文档或系统实现范围，要明确说明当前文档/系统未定义。",
-    "回答尽量使用中文，并保持结构清晰、可复核。",
-    "如果用户问某个指标如何计算，优先按 来源 -> 公式 -> 文字解释 -> 示例 的顺序回答。",
-    "如果用户问报表项目，优先说明它来自哪个 Node 或哪个后处理层。",
+    "请严格依据系统提供的知识文档和追溯上下文回答，不要编造当前系统中不存在的规则。",
+    "回答默认使用中文，尽量简短直接。",
+    "如果用户问业务实质，优先解释业务含义和影响。",
+    "如果用户问原因或数字来源，优先回答具体数据、来源报表/节点和关键计算过程。",
+    "如果用户问公式，优先给公式和最必要的变量解释。",
+    "除非用户明确要求，不要同时展开业务、公式、示例、长篇背景。",
+    "如果当前文档或系统未定义，就明确说当前未定义。"
   ].filter(Boolean).join(" ");
 }
 
@@ -62,8 +64,8 @@ export async function onRequestPost(context) {
   try {
     const { request, env } = context;
     const body = await request.json();
-    const includeKnowledge = Boolean(body?.includeKnowledge);
     const activeTab = body?.activeTab || "";
+    const traceContext = typeof body?.traceContext === "string" ? body.traceContext.trim() : "";
     const messages = normalizeMessages(body?.messages);
 
     if (!messages.length) {
@@ -74,15 +76,19 @@ export async function onRequestPost(context) {
       return Response.json({ error: "服务端未配置 GLM_API_KEY" }, { status: 500 });
     }
 
+    const knowledge = await loadKnowledge(env);
     const chatMessages = [
       { role: "system", content: buildSystemPrompt(activeTab) },
-    ];
-
-    if (includeKnowledge) {
-      const knowledge = await loadKnowledge(env);
-      chatMessages.push({
+      {
         role: "system",
         content: `以下是系统当前版本的 IFRS17 引擎知识文档，请严格以此为准回答问题：\n\n${knowledge}`,
+      },
+    ];
+
+    if (traceContext) {
+      chatMessages.push({
+        role: "system",
+        content: `以下是系统基于当前活动情景生成的数字追溯上下文，请优先依据它回答具体数字来源问题：\n\n${traceContext}`,
       });
     }
 
@@ -111,9 +117,6 @@ export async function onRequestPost(context) {
     const reply = extractReply(payload);
     return Response.json({ reply: reply || "当前没有拿到有效回复。" });
   } catch (error) {
-    return Response.json(
-      { error: error?.message || "服务端处理失败" },
-      { status: 500 }
-    );
+    return Response.json({ error: error?.message || "服务端处理失败" }, { status: 500 });
   }
 }

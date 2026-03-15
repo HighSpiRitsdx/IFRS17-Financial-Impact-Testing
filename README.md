@@ -97,10 +97,10 @@ In `web/wrangler.toml` we use these names:
 
 ### Suggested R2 object
 Upload this file into your R2 bucket:
-- `docs/ifrs17-engine-knowledge-base.md`
+- `docs/GLM.md`
 
 Then set:
-- `IFRS17_DOC_KEY = ifrs17-engine-knowledge-base.md`
+- `IFRS17_DOC_KEY = GLM.md`
 
 ### Secret setup
 Example with Wrangler:
@@ -113,3 +113,4 @@ wrangler secret put GLM_API_KEY
 - The knowledge markdown is not bundled into the frontend.
 - The API key is never exposed to the browser.
 - If chat is not configured yet, the UI will show a readable server error message instead of crashing.
+

@@ -912,3 +912,74 @@ td.num {
 
 
 
+
+
+
+.chat-helper {
+  margin-top: 8px;
+  color: #66758f;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+
+.chatbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.chatbox-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b6b88;
+}
+
+.chatbox-toggle {
+  border: 1px solid #d3def0;
+  background: #f7faff;
+  color: #3d63dd;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.chatbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.18);
+  z-index: 40;
+}
+
+.chatbox.expanded {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(980px, calc(100vw - 64px));
+  max-height: calc(100vh - 56px);
+  padding: 16px;
+  z-index: 50;
+  box-shadow: 0 28px 70px rgba(31, 60, 136, 0.22);
+}
+
+.chatbox.expanded .chat-list {
+  max-height: calc(100vh - 240px);
+}
+
+.chatbox.expanded .chat-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.chatbox.expanded .chat-input-wrap input {
+  padding: 12px 14px;
+}
+
+.chatbox.expanded .chat-helper {
+  font-size: 12px;
+}
