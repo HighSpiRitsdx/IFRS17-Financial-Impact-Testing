@@ -1,0 +1,6 @@
+﻿date,commission,expected_premiums,actual_premiums,expected_claims,actual_claims,expected_expenses,actual_expenses,df
+2026/1/1,200,,,,,,,1
+2026/2/1,,-100,-100,50,50,,,0.95
+2026/3/1,,,,,,,,0.9964
+2026/4/1,,,,,,,,0.9946
+2026/4/1,,,,,,,,0.9928
