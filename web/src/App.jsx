@@ -135,18 +135,6 @@ export default function App() {
   const [scenarios, setScenarios] = useState([]);
   const [activeScenarioId, setActiveScenarioId] = useState("global-base");
 
-  const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState([
-    { role: "assistant", content: "你可以在这里询问公式、节点、报表口径，或直接追问具体数字的计算来源" },
-  ]);
-  const [chatError, setChatError] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatExpanded, setChatExpanded] = useState(false);
-  const sessionId = useMemo(() => {
-    if (globalThis?.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-    return `session-${Date.now()}`;
-  }, []);
-
   const previewState = useMemo(() => {
     if (!rawRows.length) return { results: null, error: "" };
     try {
@@ -335,61 +323,6 @@ export default function App() {
     if (rawRows.length) rebuildGlobalScenario(rawRows, nextGlobalVars, nextNodeOverrides);
   }
 
-  function sendChat() {
-    return sendChatAsync();
-  }
-  async function sendChatAsync() {
-    const question = chatInput.trim();
-    if (!question || chatLoading) return;
-
-    const history = chatMessages.filter((message) => message.role === "user" || message.role === "assistant");
-    const nextUserMessage = { role: "user", content: question };
-
-    setChatExpanded(true);
-    setChatMessages((prev) => [...prev, nextUserMessage]);
-    setChatInput("");
-    setChatError("");
-    setChatLoading(true);
-
-    const traceContext = buildChatTraceContext(question, activeScenario);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          activeTab,
-          traceContext,
-          messages: [...history, nextUserMessage].map((message) => ({
-            role: message.role,
-            content: message.content,
-          })),
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.error || "问答服务调用失败");
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: payload.reply || "当前没有拿到模型回复。" },
-      ]);
-    } catch (error) {
-      const message = error.message || "问答服务调用失败";
-      setChatError(message);
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `当前未能完成问答：${message}` },
-      ]);
-    } finally {
-      setChatLoading(false);
-    }
-  }
-
-
   function downloadExcel() {
     if (!scenarios.length) return;
     const blob = exportScenarioWorkbook(scenarios);
@@ -436,45 +369,7 @@ export default function App() {
       </aside>
 
       <main className="main-content">
-        {chatExpanded ? <div className="chatbox-backdrop" onClick={() => setChatExpanded(false)} /> : null}
-        <section className={`chatbox ${chatExpanded ? "expanded" : ""}`}>
-          <div className="chatbox-head">
-            <div className="chatbox-title">Actuarial Copilot</div>
-            <button type="button" className="chatbox-toggle" onClick={() => setChatExpanded((prev) => !prev)}>
-              {chatExpanded ? "收起" : "放大"}
-            </button>
-          </div>
-          <div className="chat-list">
-            {chatMessages.slice(chatExpanded ? -12 : -4).map((message, index) => (
-              <div key={index} className={`chat-row ${message.role || "assistant"}`}>
-                <div className="chat-role">{message.role === "user" ? "你" : "Copilot"}</div>
-                <div className="chat-content">{message.content}</div>
-              </div>
-            ))}
-          </div>
-          {chatError ? <div className="chat-error">{chatError}</div> : null}
-          <div className="chat-input-wrap">
-            <input
-              value={chatInput}
-              onChange={(event) => setChatInput(event.target.value)}
-              onFocus={() => setChatExpanded(true)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  sendChat();
-                }
-              }}
-              placeholder="例如：Y2的CSM释放怎么来的？或 29,290,526 这个数字怎么来的？也支持 BEL @ CR、投资收益、综合收益总额。"
-            />
-            <button onClick={sendChat} disabled={chatLoading}>
-              {chatLoading ? "思考中..." : "发送"}
-            </button>
-          </div>
-          <div className="chat-helper">
-            当前优先支持：CSM释放、CSM计息、BEL(锁定)计息、OCI、净利润、净资产、BEL(当期)、BEL @ CR、投资收益、综合收益总额、CSM期末余额，也支持直接粘贴数字提问。
-          </div>
-        </section>
-
+        <ChatPanel activeTab={activeTab} activeScenario={activeScenario} />
         {panelError ? <div className="error-box">{panelError}</div> : null}
 
         {activeTab === "final" ? (
@@ -1936,8 +1831,9 @@ function round2(value) {
 
 
 
+
 const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
-  const [chatInput, setChatInput] = useState("");
+  const inputRef = useRef(null);
   const [chatMessages, setChatMessages] = useState([
     { role: "assistant", content: "你可以在这里询问公式、节点、报表口径，或直接追问具体数字的计算来源" },
   ]);
@@ -1950,7 +1846,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   }, []);
 
   async function sendChatAsync() {
-    const question = chatInput.trim();
+    const question = inputRef.current?.value?.trim() || "";
     if (!question || chatLoading) return;
 
     const history = chatMessages.filter((message) => message.role === "user" || message.role === "assistant");
@@ -1958,7 +1854,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
 
     setChatExpanded(true);
     setChatMessages((prev) => [...prev, nextUserMessage]);
-    setChatInput("");
+    if (inputRef.current) inputRef.current.value = "";
     setChatError("");
     setChatLoading(true);
 
@@ -2016,8 +1912,8 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
         {chatError ? <div className="chat-error">{chatError}</div> : null}
         <div className="chat-input-wrap">
           <input
-            value={chatInput}
-            onChange={(event) => setChatInput(event.target.value)}
+            ref={inputRef}
+            defaultValue=""
             onFocus={() => setChatExpanded(true)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -2038,3 +1934,4 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     </>
   );
 });
+
