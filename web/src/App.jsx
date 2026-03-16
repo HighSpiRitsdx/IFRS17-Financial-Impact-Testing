@@ -1384,10 +1384,10 @@ function buildCsmMovementData(row) {
 }
 
 function WaterfallChart({ data, axisMax }) {
-  const width = 940;
+  const width = 760;
   const height = 320;
-  const left = 70;
-  const right = 30;
+  const left = 56;
+  const right = 18;
   const top = 26;
   const bottom = 48;
   const chartWidth = width - left - right;
@@ -1845,10 +1845,15 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   const [chatError, setChatError] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
+  const [chatReplyAttention, setChatReplyAttention] = useState(false);
   const sessionId = useMemo(() => {
     if (globalThis?.crypto?.randomUUID) return globalThis.crypto.randomUUID();
     return `session-${Date.now()}`;
   }, []);
+
+  function clearChatAttention() {
+    setChatReplyAttention(false);
+  }
 
   async function sendChatAsync() {
     const question = inputRef.current?.value?.trim() || "";
@@ -1858,6 +1863,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     const nextUserMessage = { role: "user", content: question };
 
     setChatExpanded(true);
+    setChatReplyAttention(false);
     setChatMessages((prev) => [...prev, nextUserMessage]);
     if (inputRef.current) inputRef.current.value = "";
     setChatError("");
@@ -1889,6 +1895,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
         ...prev,
         { role: "assistant", content: payload.reply || "当前没有拿到有效回复。" },
       ]);
+      setChatReplyAttention(true);
     } catch (error) {
       setChatError(error.message || "问答请求失败");
     } finally {
@@ -1899,7 +1906,10 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   return (
     <>
       {chatExpanded ? <div className="chatbox-backdrop" onClick={() => setChatExpanded(false)} /> : null}
-      <section className={`chatbox ${chatExpanded ? "expanded" : ""}`}>
+      <section
+        className={`chatbox ${chatExpanded ? "expanded" : ""} ${chatReplyAttention ? "reply-attention" : ""}`.trim()}
+        onMouseDown={clearChatAttention}
+      >
         <div className="chatbox-head">
           <div className="chatbox-title">Actuarial Copilot</div>
           <button type="button" className="chatbox-toggle" onClick={() => setChatExpanded((prev) => !prev)}>
@@ -1919,7 +1929,10 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
           <input
             ref={inputRef}
             defaultValue=""
-            onFocus={() => setChatExpanded(true)}
+            onFocus={() => {
+              setChatExpanded(true);
+              clearChatAttention();
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -1939,6 +1952,8 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     </>
   );
 });
+
+
 
 
 
