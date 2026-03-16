@@ -1981,7 +1981,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
         <div className="chatbox-head">
           <div className="chatbox-title">Actuarial Copilot</div>
           <button type="button" className="chatbox-toggle" onClick={() => setChatExpanded((prev) => !prev)}>
-            {chatExpanded ? "收起" : "放大"}
+            <span className="expand-icon" aria-hidden="true" />
           </button>
         </div>
         <div className="chat-list">
