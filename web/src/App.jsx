@@ -1839,6 +1839,7 @@ function round2(value) {
 
 const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   const inputRef = useRef(null);
+  const chatEndRef = useRef(null);
   const [chatMessages, setChatMessages] = useState([
     { role: "assistant", content: "你可以在这里询问公式、节点、报表口径，或直接追问具体数字的计算来源" },
   ]);
@@ -1854,6 +1855,10 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   function clearChatAttention() {
     setChatReplyAttention(false);
   }
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [chatMessages, chatExpanded, chatLoading]);
 
   async function sendChatAsync() {
     const question = inputRef.current?.value?.trim() || "";
@@ -1923,6 +1928,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
               <div className="chat-content">{message.content}</div>
             </div>
           ))}
+          <div ref={chatEndRef} className="chat-end-anchor" />
         </div>
         {chatError ? <div className="chat-error">{chatError}</div> : null}
         <div className="chat-input-wrap">
@@ -1952,6 +1958,10 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     </>
   );
 });
+
+
+
+
 
 
 

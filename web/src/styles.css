@@ -1751,15 +1751,21 @@ tbody tr:hover td {
 
 @keyframes chatReplyGlow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(120, 145, 196, 0), 0 12px 30px rgba(15, 23, 42, 0.06);
-    border-color: rgba(203, 213, 225, 0.9);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0), 0 12px 30px rgba(15, 23, 42, 0.06);
+    border-color: rgba(226, 232, 240, 0.9);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(148, 163, 184, 0.10), 0 16px 38px rgba(91, 111, 143, 0.18);
-    border-color: rgba(139, 160, 195, 0.95);
+    box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.16), 0 16px 38px rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.78);
   }
 }
 
 .chatbox.reply-attention {
   animation: chatReplyGlow 2.8s ease-in-out infinite;
 }
+
+.chat-end-anchor {
+  height: 1px;
+}
+
+
