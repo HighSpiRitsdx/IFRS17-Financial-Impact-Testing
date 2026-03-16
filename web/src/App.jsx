@@ -1,4 +1,4 @@
-﻿import { Component, memo, useEffect, useMemo, useRef, useState } from "react";
+import { Component, memo, useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import katex from "katex";
 import "katex/dist/katex.min.css";
@@ -415,12 +415,6 @@ export default function App() {
         {activeTab.startsWith("node") ? (
           <NodePanel
             nodeKey={activeTab}
-            nodeVars={activeNodeVars}
-            variableLabels={activeVariableLabels}
-            shadow={nodeShadowMode[activeTab]}
-            updateVar={activeUpdateVar}
-            setShadow={(value) => setNodeShadowMode((prev) => ({ ...prev, [activeTab]: value }))}
-            run={runFromNode}
             previewResults={previewState.results}
           />
         ) : null}
@@ -834,6 +828,7 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
   const baseRow = annualBaseRows.find((row) => row.period === selectedPeriod) || annualBaseRows[0] || null;
   const tree = useMemo(() => buildAttributionTree(selectedRow, baseRow), [selectedRow, baseRow]);
   const { nodes, links, width, height } = useMemo(() => layoutAttributionTree(tree, expandedIds), [tree, expandedIds]);
+  const hasExpandedNodes = expandedIds.size > 0;
   const csmMovement = useMemo(() => buildCsmMovementData(baseRow), [baseRow]);
   const csmMovementAxisMax = useMemo(() => getCsmMovementAxisMax(annualBaseRows), [annualBaseRows]);
 
@@ -857,8 +852,8 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
       {selectedRow && baseRow ? (
         <div className="attribution-layout">
           <div>
-            <div className="attribution-shell">
-              <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="attribution-svg">
+            <div className={`attribution-shell ${hasExpandedNodes ? "is-expanded" : "is-collapsed"}`.trim()}>
+              <svg width={hasExpandedNodes ? width : "100%"} height={height} viewBox={`0 0 ${width} ${height}`} className="attribution-svg">
                 {links.map((link) => (
                   <path
                     key={link.id}
@@ -894,7 +889,7 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
                       <text x={14} y={-12} className="tree-node-label">{node.label}</text>
                       <text x={14} y={6} className="tree-node-value">{formatCell(node.value, node.label)}</text>
                       <text x={14} y={22} className={`tree-node-delta ${node.delta > 0 ? "up" : node.delta < 0 ? "down" : "flat"}`}>
-                        {formatDelta(node.delta)}
+                        {formatDelta(node.delta, node.baseValue)}
                       </text>
                     </g>
                   );
@@ -924,7 +919,7 @@ function AttributionControlPanel({ values, onChange, onRun }) {
   return (
     <div className="attribution-side-panel">
       <h3>利源归因测试</h3>
-      <p className="muted">仅影响当前页面上方树状图，不影响下方 CSM Movement，也不会写回其他页面。</p>
+      <p className="muted">仅影响左侧树状图，不影响下方 CSM Movement，也不会写回其他页面。变动为与默认场景对比。</p>
       {Object.entries(GLOBAL_VARIABLE_LABELS).map(([key, label]) => {
         const raw = Number(values[key] ?? 0) * 100;
         return (
@@ -941,7 +936,7 @@ function AttributionControlPanel({ values, onChange, onRun }) {
     </div>
   );
 }
-function NodePanel({ nodeKey, nodeVars, variableLabels, shadow, updateVar, setShadow, run, previewResults }) {
+function NodePanel({ nodeKey, previewResults }) {
   const exampleRows = buildNodeExampleRows(nodeKey, previewResults);
   const node5InterestRows = nodeKey === "node5" ? buildNode5InterestRows(previewResults) : [];
   const formulaDetails = NODE_FORMULA_DETAILS[nodeKey] || [];
@@ -951,7 +946,7 @@ function NodePanel({ nodeKey, nodeVars, variableLabels, shadow, updateVar, setSh
       <h2>{NODE_TITLES[nodeKey]}</h2>
       <p className="muted">{NODE_EXPLANATIONS[nodeKey]}</p>
 
-      <div className="node-top-grid">
+      <div className="node-top-grid node-top-grid--full">
         <div className="logic-box">
           <h3>计算过程与解释</h3>
           <div className="target-box">
@@ -968,21 +963,6 @@ function NodePanel({ nodeKey, nodeVars, variableLabels, shadow, updateVar, setSh
                 <div className="formula-note">{formula.explanation}</div>
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="control-box">
-          <div className="var-box compact-box">
-            <h3>本节点变量</h3>
-            <VariableFields values={nodeVars} labels={variableLabels} onChange={updateVar} />
-          </div>
-
-          <div className="actions compact-box">
-            <label className="switch-row">
-              <input type="checkbox" checked={shadow} onChange={(event) => setShadow(event.target.checked)} />
-              <span>添加场景</span>
-            </label>
-            <button onClick={() => run(nodeKey)}>计算并保存场景</button>
           </div>
         </div>
       </div>
@@ -1354,11 +1334,14 @@ function toggleNodeSet(prev, nodeId) {
   return next;
 }
 
-function formatDelta(value) {
+function formatDelta(value, baseValue = 0) {
   const numeric = Number(value || 0);
-  if (Math.abs(numeric) < 1e-9) return '0.00';
+  const baseNumeric = Number(baseValue || 0);
+  if (Math.abs(numeric) < 1e-9) return '0.00 (0.00%)';
   const arrow = numeric > 0 ? '↑' : '↓';
-  return `${arrow} ${formatCell(Math.abs(numeric), 'delta')}`;
+  const pct = Math.abs(baseNumeric) < 1e-9 ? null : (numeric / baseNumeric) * 100;
+  const pctText = pct === null ? 'N/A' : formatInputNumber(Math.abs(pct), 2) + '%';
+  return arrow + ' ' + formatCell(Math.abs(numeric), 'delta') + ' (' + pctText + ')';
 }
 
 function buildCsmMovementData(row) {
@@ -1586,6 +1569,7 @@ function buildAttributionTree(row, baseRow) {
     id,
     label,
     value: value || 0,
+    baseValue: baseValue || 0,
     delta: (value || 0) - (baseValue || 0),
     color,
     children: [],
@@ -1595,6 +1579,7 @@ function buildAttributionTree(row, baseRow) {
     id: 'tci',
     label: '综合收益总额',
     value: row?.total_comprehensive_income || 0,
+    baseValue: baseRow?.total_comprehensive_income || 0,
     delta: Number(row?.total_comprehensive_income || 0) - Number(baseRow?.total_comprehensive_income || 0),
     color: '#1f3c88',
     children: [
@@ -1602,6 +1587,7 @@ function buildAttributionTree(row, baseRow) {
         id: 'net_income',
         label: '净利润',
         value: row?.net_income || 0,
+        baseValue: baseRow?.net_income || 0,
         delta: Number(row?.net_income || 0) - Number(baseRow?.net_income || 0),
         color: '#2f6fed',
         children: [
@@ -1609,6 +1595,7 @@ function buildAttributionTree(row, baseRow) {
             id: 'insurance_service_result',
             label: '保险服务结果',
             value: currentInsuranceServiceResult,
+            baseValue: baseInsuranceServiceResult,
             delta: currentInsuranceServiceResult - baseInsuranceServiceResult,
             color: '#12b886',
             children: [
@@ -1623,6 +1610,7 @@ function buildAttributionTree(row, baseRow) {
             id: 'investment_service_result',
             label: '投资服务结果',
             value: currentInvestmentServiceResult,
+            baseValue: baseInvestmentServiceResult,
             delta: currentInvestmentServiceResult - baseInvestmentServiceResult,
             color: '#0c8599',
             children: [
@@ -1636,6 +1624,7 @@ function buildAttributionTree(row, baseRow) {
         id: 'oci',
         label: 'OCI',
         value: row?.oci || 0,
+        baseValue: baseRow?.oci || 0,
         delta: Number(row?.oci || 0) - Number(baseRow?.oci || 0),
         color: '#f08c00',
         children: [],
@@ -1657,6 +1646,7 @@ function layoutAttributionTree(tree, expandedIds) {
   const rootAbs = Math.max(Math.abs(root.value || 0), 1);
   const nodes = [];
   const links = [];
+  const rootX = 110;
 
   function leafCount(node) {
     if (!node.children?.length || !expandedIds.has(node.id)) return 1;
@@ -1666,7 +1656,7 @@ function layoutAttributionTree(tree, expandedIds) {
   function walk(node, depth, top) {
     const leaves = leafCount(node);
     const centerY = top + ((leaves - 1) * verticalGap) / 2 + 70;
-    const x = 90 + depth * levelGap;
+    const x = rootX + depth * levelGap;
     nodes.push({ ...node, x, y: centerY });
     if (node.children?.length && expandedIds.has(node.id)) {
       let cursor = top;
@@ -1691,14 +1681,17 @@ function layoutAttributionTree(tree, expandedIds) {
   }
 
   const totalLeaves = leafCount(root);
-  walk(root, 0, 30);
+  const height = Math.max(260, totalLeaves * verticalGap + 80);
+  const rootTop = totalLeaves === 1 ? Math.max(30, height / 2 - 70) : 12;
+  walk(root, 0, rootTop);
   return {
     nodes,
     links,
-    width: 120 + (Math.max(...nodes.map((node) => node.x), 90) + 380),
-    height: Math.max(260, totalLeaves * verticalGap + 80),
+    width: 120 + (Math.max(...nodes.map((node) => node.x), rootX) + 380),
+    height,
   };
 }
+
 function cloneNodeDefaults() {
   return JSON.parse(JSON.stringify(NODE_DEFAULTS));
 }
@@ -1958,6 +1951,14 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     </>
   );
 });
+
+
+
+
+
+
+
+
 
 
 

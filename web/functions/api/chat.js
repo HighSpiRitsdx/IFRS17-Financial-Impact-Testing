@@ -94,23 +94,31 @@ export async function onRequestPost(context) {
 
     chatMessages.push(...messages.slice(-12));
 
-    const response = await fetch(env.GLM_API_URL || DEFAULT_GLM_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.GLM_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: env.GLM_MODEL || DEFAULT_MODEL,
-        temperature: 0.2,
-        top_p: 0.7,
-        messages: chatMessages,
-      }),
-    });
+    let response;
+    try {
+      response = await fetch(env.GLM_API_URL || DEFAULT_GLM_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${env.GLM_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: env.GLM_MODEL || DEFAULT_MODEL,
+          temperature: 0.2,
+          top_p: 0.7,
+          messages: chatMessages,
+        }),
+      });
+    } catch (fetchError) {
+      return Response.json({ error: "试验版本使用GLM-4.6V-FlashX，大模型偶尔返回超时，请再试一次。" }, { status: 502 });
+    }
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const errorMessage = payload?.error?.message || payload?.message || `GLM 调用失败（${response.status}）`;
+      const rawError = payload?.error?.message || payload?.message || `GLM 调用失败（${response.status}）`;
+      const errorMessage = /timeout|timed out|deadline|network|fetch/i.test(String(rawError))
+        ? "试验版本使用GLM-4.6V-FlashX，大模型偶尔返回超时，请再试一次。"
+        : rawError;
       return Response.json({ error: errorMessage }, { status: response.status });
     }
 
@@ -120,3 +128,5 @@ export async function onRequestPost(context) {
     return Response.json({ error: error?.message || "服务端处理失败" }, { status: 500 });
   }
 }
+
+
