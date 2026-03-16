@@ -817,12 +817,23 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
   const annualBaseRows = useMemo(() => buildAnnualResultRows(attributionBaseResults, 100), [attributionBaseResults]);
   const [selectedPeriod, setSelectedPeriod] = useState("Y1");
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const firstPeriod = annualBaseRows[0]?.period || annualRows[0]?.period || "Y1";
     setSelectedPeriod(firstPeriod);
     setExpandedIds(new Set());
+    setIsFullscreen(false);
   }, [attributionResults, attributionBaseResults, annualRows.length, annualBaseRows.length]);
+
+  useEffect(() => {
+    if (!isFullscreen) return undefined;
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setIsFullscreen(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
 
   const selectedRow = annualRows.find((row) => row.period === selectedPeriod) || annualRows[0] || null;
   const baseRow = annualBaseRows.find((row) => row.period === selectedPeriod) || annualBaseRows[0] || null;
@@ -831,6 +842,79 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
   const hasExpandedNodes = expandedIds.size > 0;
   const csmMovement = useMemo(() => buildCsmMovementData(baseRow), [baseRow]);
   const csmMovementAxisMax = useMemo(() => getCsmMovementAxisMax(annualBaseRows), [annualBaseRows]);
+
+  function renderAttributionSvg(fullscreen = false) {
+    const rootX = 110;
+    const xStretch = fullscreen ? 1.3 : 1;
+    const stretchX = (value) => rootX + (value - rootX) * xStretch;
+    const maxNodeX = Math.max(...nodes.map((node) => stretchX(node.x)));
+    const fullscreenWidth = maxNodeX + 240;
+
+    const svgProps = fullscreen
+      ? {
+          width: "100%",
+          height: "100%",
+          preserveAspectRatio: "xMinYMid meet",
+          viewBox: `0 0 ${fullscreenWidth} ${height}`,
+        }
+      : {
+          width: hasExpandedNodes ? width : "100%",
+          height,
+          viewBox: `0 0 ${width} ${height}`,
+        };
+
+    return (
+      <svg {...svgProps} className={`attribution-svg${fullscreen ? " is-fullscreen" : ""}`}>
+        {links.map((link) => {
+          const x1 = stretchX(link.x1);
+          const x2 = stretchX(link.x2);
+          const cx1 = stretchX(link.cx1);
+          const cx2 = stretchX(link.cx2);
+          return (
+            <path
+              key={link.id}
+              d={`M ${x1} ${link.y1} C ${cx1} ${link.y1}, ${cx2} ${link.y2}, ${x2} ${link.y2}`}
+              stroke={link.color}
+              strokeWidth={link.strokeWidth}
+              fill="none"
+              strokeLinecap="round"
+              opacity="0.75"
+            />
+          );
+        })}
+        {nodes.map((node) => {
+          const expandable = (node.children || []).length > 0;
+          const expanded = expandedIds.has(node.id);
+          const nodeX = stretchX(node.x);
+          return (
+            <g key={node.id} transform={`translate(${nodeX}, ${node.y})`} className="tree-node-group">
+              <circle
+                r={expandable ? 10 : 8}
+                fill="#ffffff"
+                stroke={node.color}
+                strokeWidth="3"
+                className={expandable ? "tree-node clickable" : "tree-node"}
+                onClick={() => {
+                  if (!expandable) return;
+                  setExpandedIds((prev) => toggleNodeSet(prev, node.id));
+                }}
+              />
+              {expandable ? (
+                <text textAnchor="middle" dominantBaseline="middle" className="tree-node-toggle" onClick={() => setExpandedIds((prev) => toggleNodeSet(prev, node.id))}>
+                  {expanded ? "−" : "+"}
+                </text>
+              ) : null}
+              <text x={14} y={-12} className="tree-node-label">{node.label}</text>
+              <text x={14} y={6} className="tree-node-value">{formatCell(node.value, node.label)}</text>
+              <text x={14} y={22} className={`tree-node-delta ${node.delta > 0 ? "up" : node.delta < 0 ? "down" : "flat"}`}>
+                {formatDelta(node.delta, node.baseValue)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
 
   return (
     <section className="panel attribution-page">
@@ -852,49 +936,18 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
       {selectedRow && baseRow ? (
         <div className="attribution-layout">
           <div>
-            <div className={`attribution-shell ${hasExpandedNodes ? "is-expanded" : "is-collapsed"}`.trim()}>
-              <svg width={hasExpandedNodes ? width : "100%"} height={height} viewBox={`0 0 ${width} ${height}`} className="attribution-svg">
-                {links.map((link) => (
-                  <path
-                    key={link.id}
-                    d={`M ${link.x1} ${link.y1} C ${link.cx1} ${link.y1}, ${link.cx2} ${link.y2}, ${link.x2} ${link.y2}`}
-                    stroke={link.color}
-                    strokeWidth={link.strokeWidth}
-                    fill="none"
-                    strokeLinecap="round"
-                    opacity="0.75"
-                  />
-                ))}
-                {nodes.map((node) => {
-                  const expandable = (node.children || []).length > 0;
-                  const expanded = expandedIds.has(node.id);
-                  return (
-                    <g key={node.id} transform={`translate(${node.x}, ${node.y})`} className="tree-node-group">
-                      <circle
-                        r={expandable ? 10 : 8}
-                        fill="#ffffff"
-                        stroke={node.color}
-                        strokeWidth="3"
-                        className={expandable ? "tree-node clickable" : "tree-node"}
-                        onClick={() => {
-                          if (!expandable) return;
-                          setExpandedIds((prev) => toggleNodeSet(prev, node.id));
-                        }}
-                      />
-                      {expandable ? (
-                        <text textAnchor="middle" dominantBaseline="middle" className="tree-node-toggle" onClick={() => setExpandedIds((prev) => toggleNodeSet(prev, node.id))}>
-                          {expanded ? "−" : "+"}
-                        </text>
-                      ) : null}
-                      <text x={14} y={-12} className="tree-node-label">{node.label}</text>
-                      <text x={14} y={6} className="tree-node-value">{formatCell(node.value, node.label)}</text>
-                      <text x={14} y={22} className={`tree-node-delta ${node.delta > 0 ? "up" : node.delta < 0 ? "down" : "flat"}`}>
-                        {formatDelta(node.delta, node.baseValue)}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
+            <div className="attribution-shell-wrap">
+              <button
+                type="button"
+                className="attribution-expand-btn"
+                aria-label={isFullscreen ? "缩小利源归因图" : "放大利源归因图"}
+                onClick={() => setIsFullscreen((prev) => !prev)}
+              >
+                <span className="expand-icon" aria-hidden="true" />
+              </button>
+              <div className={`attribution-shell ${hasExpandedNodes ? "is-expanded" : "is-collapsed"}`.trim()}>
+                {renderAttributionSvg(false)}
+              </div>
             </div>
 
             <div className="chart-card figma-chart-card attribution-movement-card">
@@ -911,10 +964,27 @@ function AttributionPanel({ attributionResults, attributionBaseResults, attribut
       ) : (
         <div className="empty">请先上传 CSV 并生成年度结果。</div>
       )}
+
+      {isFullscreen ? (
+        <div className="attribution-modal-backdrop" onClick={() => setIsFullscreen(false)}>
+          <div className="attribution-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="attribution-expand-btn attribution-expand-btn--modal"
+              aria-label="缩小利源归因图"
+              onClick={() => setIsFullscreen(false)}
+            >
+              <span className="expand-icon" aria-hidden="true" />
+            </button>
+            <div className="attribution-modal-canvas">
+              {renderAttributionSvg(true)}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
-
 function AttributionControlPanel({ values, onChange, onRun }) {
   return (
     <div className="attribution-side-panel">

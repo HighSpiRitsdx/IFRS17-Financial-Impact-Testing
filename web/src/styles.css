@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #132238;
   background: linear-gradient(180deg, #f4f7fc, #edf2f8);
@@ -32,7 +32,7 @@ body {
 .brand {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   text-align: center;
 }
@@ -221,7 +221,7 @@ body {
 .chart-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
@@ -491,7 +491,7 @@ td.num {
   display: grid;
   grid-template-columns: 1fr 140px;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 8px;
   font-size: 13px;
 }
@@ -499,7 +499,7 @@ td.num {
 .value-input {
   display: grid;
   grid-template-columns: 1fr;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .value-input.percent {
@@ -521,7 +521,7 @@ td.num {
 
 .switch-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -572,7 +572,7 @@ td.num {
   display: grid;
   grid-template-columns: 1fr 88px;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .slider-inline input[type="number"] {
@@ -586,7 +586,7 @@ td.num {
 .chart-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -631,7 +631,7 @@ td.num {
 
 .compare-option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   border: 1px solid #d9e3f0;
   border-radius: 10px;
@@ -651,7 +651,7 @@ td.num {
 .global-action-row {
   display: grid;
   grid-template-columns: 92px auto;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -667,7 +667,7 @@ td.num {
 
 .toggle-switch {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   cursor: pointer;
   user-select: none;
@@ -686,7 +686,7 @@ td.num {
   background: #cbd5e1;
   padding: 3px;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   transition: background 0.2s ease;
 }
 
@@ -743,7 +743,7 @@ td.num {
 .attribution-toolbar {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
@@ -851,7 +851,7 @@ td.num {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .slider-field input[type="range"] {
@@ -928,7 +928,7 @@ td.num {
 
 .chatbox-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
@@ -1032,7 +1032,7 @@ body {
 .brand {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   text-align: center;
 }
@@ -1315,7 +1315,7 @@ input:checked + .toggle-track {
 
 .nav-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 11px 12px;
 }
@@ -1477,7 +1477,7 @@ tbody tr:hover td {
 .collapse summary,
 .compare-picker summary {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   color: var(--text-strong);
 }
@@ -1490,7 +1490,7 @@ tbody tr:hover td {
   border-radius: 999px;
   border: 1px solid var(--border-soft);
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   color: var(--text-muted);
   background: #fff;
@@ -1521,7 +1521,7 @@ tbody tr:hover td {
 
 .chart-unit {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   min-height: 28px;
   padding: 0 10px;
@@ -1687,7 +1687,7 @@ tbody tr:hover td {
 .brand {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   text-align: center;
 }
@@ -1702,7 +1702,7 @@ tbody tr:hover td {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.125rem;
 }
 
@@ -1865,4 +1865,100 @@ tbody tr:hover td {
 
 .attribution-svg {
   min-width: 0;
+}
+
+.attribution-shell-wrap {
+  position: relative;
+}
+
+.attribution-expand-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #d6e2f5;
+  background: rgba(255, 255, 255, 0.94);
+  color: #41536f;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.attribution-expand-btn:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.attribution-expand-btn--modal {
+  top: 18px;
+  right: 18px;
+}
+
+.attribution-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(245, 247, 251, 0.78);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 28px 28px;
+}
+
+.attribution-modal {
+  position: relative;
+  width: min(98vw, 1760px);
+  height: min(90vh, 1020px);
+  border-radius: 24px;
+  border: 1px solid #d6e2f5;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,255,0.98));
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.18);
+  padding: 24px;
+}
+
+.attribution-modal-canvas {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.attribution-svg.is-fullscreen {
+  min-width: 0;
+}
+
+.expand-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}
+
+.expand-icon::before,
+.expand-icon::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: currentColor;
+  border-style: solid;
+}
+
+.expand-icon::before {
+  top: 0;
+  right: 0;
+  border-width: 2px 2px 0 0;
+}
+
+.expand-icon::after {
+  left: 0;
+  bottom: 0;
+  border-width: 0 0 2px 2px;
 }
