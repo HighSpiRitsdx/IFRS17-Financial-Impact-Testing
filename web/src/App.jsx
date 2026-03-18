@@ -36,9 +36,9 @@ import { findChangedVariables, runEngine } from "./lib/engine";
 import { buildChatTraceContext } from "./lib/chatTrace";
 
 const NAV_ITEMS = [
-  { key: "final", label: "最终报表" },
-  { key: "charts", label: "图表分析" },
-  { key: "attribution", label: "利源归因" },
+  { key: "final", label: "\u6700\u7ec8\u62a5\u8868" },
+  { key: "charts", label: "\u56fe\u8868\u5206\u6790" },
+  { key: "attribution", label: "\u5229\u6e90\u5f52\u56e0" },
   ...Object.keys(NODE_DEFAULTS).map((n) => ({ key: n, label: NODE_TITLES[n] })),
 ];
 
@@ -47,10 +47,15 @@ const COMPARE_BAR_PALETTE = ["#6f86ad", "#b68b73", "#8a9f95", "#9b86b8"];
 const COMPARE_LINE_PALETTE = ["#5f7598", "#9e765f", "#708a7f", "#866fa7"];
 
 function buildScenarioCaption(scenarios) {
-  if (!scenarios || !scenarios.length) return "暂无";
+  if (!scenarios || !scenarios.length) return "\u6682\u65e0";
   if (scenarios.length === 1) return scenarios[0].name;
   return scenarios.map((scenario) => scenario.name).join(" vs ");
 }
+
+const CHAT_MODELS = [
+  { key: "glm-4.6v-flashx", label: "GLM 4.6 FlashX" },
+  { key: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview" },
+];
 
 
 const PL_LAYOUT = [
@@ -1903,17 +1908,21 @@ function round2(value) {
 const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   const inputRef = useRef(null);
   const chatEndRef = useRef(null);
+  const modelMenuRef = useRef(null);
   const [chatMessages, setChatMessages] = useState([
-    { role: "assistant", content: "你可以在这里询问公式、节点、报表口径，或直接追问具体数字的计算来源" },
+    { role: "assistant", content: "\u4f60\u53ef\u4ee5\u5728\u8fd9\u91cc\u8be2\u95ee\u516c\u5f0f\u3001\u8282\u70b9\u3001\u62a5\u8868\u53e3\u5f84\uff0c\u6216\u76f4\u63a5\u8ffd\u95ee\u5177\u4f53\u6570\u5b57\u7684\u8ba1\u7b97\u6765\u6e90" },
   ]);
   const [chatError, setChatError] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [chatReplyAttention, setChatReplyAttention] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("glm-4.6v-flashx");
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const sessionId = useMemo(() => {
     if (globalThis?.crypto?.randomUUID) return globalThis.crypto.randomUUID();
     return `session-${Date.now()}`;
   }, []);
+  const selectedModelLabel = CHAT_MODELS.find((model) => model.key === selectedModel)?.label || "GLM 4.6 FlashX";
 
   function clearChatAttention() {
     setChatReplyAttention(false);
@@ -1922,6 +1931,17 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [chatMessages, chatExpanded, chatLoading]);
+
+  useEffect(() => {
+    if (!modelMenuOpen) return undefined;
+    function handlePointerDown(event) {
+      if (!modelMenuRef.current?.contains(event.target)) {
+        setModelMenuOpen(false);
+      }
+    }
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, [modelMenuOpen]);
 
   async function sendChatAsync() {
     const question = inputRef.current?.value?.trim() || "";
@@ -1936,6 +1956,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
     if (inputRef.current) inputRef.current.value = "";
     setChatError("");
     setChatLoading(true);
+    setModelMenuOpen(false);
 
     const traceContext = buildChatTraceContext(question, activeScenario);
 
@@ -1946,6 +1967,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
         body: JSON.stringify({
           sessionId,
           activeTab,
+          selectedModel,
           traceContext,
           messages: [...history, nextUserMessage].map((message) => ({
             role: message.role,
@@ -1956,16 +1978,16 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.error || "问答请求失败");
+        throw new Error(payload?.error || "\u95ee\u7b54\u8bf7\u6c42\u5931\u8d25");
       }
 
       setChatMessages((prev) => [
         ...prev,
-        { role: "assistant", content: payload.reply || "当前没有拿到有效回复。" },
+        { role: "assistant", content: payload.reply || "\u5f53\u524d\u6ca1\u6709\u62ff\u5230\u6709\u6548\u56de\u590d\u3002" },
       ]);
       setChatReplyAttention(true);
     } catch (error) {
-      setChatError(error.message || "问答请求失败");
+      setChatError(error.message || "\u95ee\u7b54\u8bf7\u6c42\u5931\u8d25");
     } finally {
       setChatLoading(false);
     }
@@ -1979,15 +2001,47 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
         onMouseDown={clearChatAttention}
       >
         <div className="chatbox-head">
-          <div className="chatbox-title">Actuarial Copilot</div>
-          <button type="button" className="chatbox-toggle" onClick={() => setChatExpanded((prev) => !prev)}>
-            <span className="expand-icon" aria-hidden="true" />
-          </button>
+          <div className="chatbox-title-wrap">
+            <div className="chatbox-title">精算问答助手</div>
+          </div>
+          <div className="chatbox-head-actions">
+            <div ref={modelMenuRef} className={`chat-model-picker ${modelMenuOpen ? "open" : ""}`.trim()}>
+              <button
+                type="button"
+                className="chat-model-trigger"
+                onClick={() => setModelMenuOpen((prev) => !prev)}
+              >
+                <span>{selectedModelLabel}</span>
+                <span className="chat-model-caret" aria-hidden="true" />
+              </button>
+              {modelMenuOpen ? (
+                <div className="chat-model-menu">
+                  {CHAT_MODELS.map((model) => (
+                    <button
+                      key={model.key}
+                      type="button"
+                      className={`chat-model-option ${selectedModel === model.key ? "active" : ""}`.trim()}
+                      onClick={() => {
+                        setSelectedModel(model.key);
+                        setModelMenuOpen(false);
+                      }}
+                    >
+                      <span>{model.label}</span>
+                      {selectedModel === model.key ? <span aria-hidden="true">{"\u2713"}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <button type="button" className="chatbox-toggle" onClick={() => setChatExpanded((prev) => !prev)}>
+              <span className="expand-icon" aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <div className="chat-list">
           {chatMessages.slice(chatExpanded ? -12 : -4).map((message, index) => (
             <div key={index} className={`chat-row ${message.role || "assistant"}`}>
-              <div className="chat-role">{message.role === "user" ? "你" : "Copilot"}</div>
+              <div className="chat-role">{message.role === "user" ? "\u4f60" : "Copilot"}</div>
               <div className="chat-content">{message.content}</div>
             </div>
           ))}
@@ -2014,9 +2068,7 @@ const ChatPanel = memo(function ChatPanel({ activeTab, activeScenario }) {
             {chatLoading ? "思考中..." : "发送"}
           </button>
         </div>
-        <div className="chat-helper">
-          当前优先支持：CSM释放、CSM计息、BEL(锁定)计息、OCI、净利润、净资产、BEL(当期)、BEL @ CR、投资收益、综合收益总额、CSM期末余额，也支持直接粘贴数字提问。
-        </div>
+        <div className="chat-helper">你可以在这里询问公式、节点、报表口径，或直接追问具体数字的计算来源</div>
       </section>
     </>
   );

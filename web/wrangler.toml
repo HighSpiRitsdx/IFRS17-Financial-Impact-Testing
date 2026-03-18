@@ -1,4 +1,4 @@
-﻿name = "ifrs17-whitebox-react-demo"
+name = "ifrs17-whitebox-react-demo"
 compatibility_date = "2026-03-15"
 pages_build_output_dir = "dist"
 
@@ -9,6 +9,5 @@ preview_bucket_name = "your-ifrs17-doc-bucket-preview"
 
 [vars]
 GLM_MODEL = "glm-4.6v-flashx"
-GLM_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-IFRS17_DOC_KEY = "GLM.md"
+GLM_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"`r`nGEMINI_MODEL = "gemini-3-flash-preview"`r`nGEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"`r`nIFRS17_DOC_KEY = "GLM.md"
 

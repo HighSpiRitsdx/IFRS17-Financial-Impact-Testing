@@ -1,4 +1,4 @@
-﻿const TRACE_DEFS = {
+const TRACE_DEFS = {
   csm_release_income: {
     label: 'CSM释放',
     aliases: ['csm释放', 'csm release', '释放'],
@@ -318,6 +318,70 @@ function formatCandidate(candidate, rank) {
     `${rank}. ${candidate.section} / ${candidate.period} / ${candidate.label} = ${formatNumber(candidate.value)}`,
     `   ${candidate.explanation}`,
   ].join('\n');
+}
+
+function buildLinkedFormulaContext(key, monthlyNodes, monthlyPl, monthlyBs) {
+  const firstNode = monthlyNodes[0] || {};
+  const firstPl = monthlyPl[0] || {};
+  const firstBs = monthlyBs[0] || {};
+
+  if (key === 'csm_release_income' || key === 'csm_interest_expense' || key === 'reinsurance_contract_assets_csm') {
+    return [
+      `csm_opening=${formatNumber(firstNode.csm_opening)}`,
+      `csm_interest=${formatNumber(firstNode.csm_interest)}`,
+      `unlocking_to_csm=${formatNumber(firstNode.unlocking_to_csm)}`,
+      `csm_amortization=${formatNumber(firstNode.csm_amortization)}`,
+      `csm_closing=${formatNumber(firstNode.csm_closing)}`,
+    ].join('?');
+  }
+
+  if (key === 'bel_locked_interest_expense') {
+    return [
+      `bel_locked=${formatNumber(firstNode.bel_locked)}`,
+      `df=${formatNumber(firstNode.df)}`,
+      `delta_bel=${formatNumber(firstNode.delta_bel)}`,
+    ].join('?');
+  }
+
+  if (key === 'oci' || key === 'reinsurance_contract_assets_bel_cr') {
+    return [
+      `bel_current=${formatNumber(firstNode.bel_current)}`,
+      `bel_locked=${formatNumber(firstNode.bel_locked)}`,
+      `exp_net_cf=${formatNumber(firstNode.exp_net_cf)}`,
+      `delta_bel=${formatNumber(firstNode.delta_bel)}`,
+      `BEL@CR=${formatNumber(firstBs.reinsurance_contract_assets_bel_cr)}`,
+    ].join('?');
+  }
+
+  if (key === 'investment_return_income') {
+    return [
+      `investment_base=${formatNumber(firstNode.investment_base)}`,
+      `investment_return=${formatNumber(firstNode.investment_return)}`,
+      `financial_assets=${formatNumber(firstBs.financial_assets_investment_return)}`,
+    ].join('?');
+  }
+
+  if (key === 'net_income' || key === 'total_comprehensive_income') {
+    return [
+      `actual_claim_income=${formatNumber(firstPl.actual_claim_income)}`,
+      `expected_claim_expense=${formatNumber(firstPl.expected_claim_expense)}`,
+      `csm_release_income=${formatNumber(firstPl.csm_release_income)}`,
+      `csm_interest_expense=${formatNumber(firstPl.csm_interest_expense)}`,
+      `bel_locked_interest_expense=${formatNumber(firstPl.bel_locked_interest_expense)}`,
+      `investment_return_income=${formatNumber(firstPl.investment_return_income)}`,
+      `oci=${formatNumber(firstPl.oci)}`,
+    ].join('?');
+  }
+
+  if (key === 'net_assets') {
+    return [
+      `total_assets=${formatNumber(firstBs.total_assets)}`,
+      `total_liabilities=${formatNumber(firstBs.total_liabilities)}`,
+      `net_assets=${formatNumber(firstBs.net_assets)}`,
+    ].join('?');
+  }
+
+  return '';
 }
 
 function normalizeText(text) {
