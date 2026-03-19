@@ -4,8 +4,8 @@ pages_build_output_dir = "dist"
 
 [[r2_buckets]]
 binding = "IFRS17_DOC_BUCKET"
-bucket_name = "your-ifrs17-doc-bucket"
-preview_bucket_name = "your-ifrs17-doc-bucket-preview"
+bucket_name = "ifrs17-doc-bucket"
+preview_bucket_name = "ifrs17-doc-bucket-preview"
 
 [vars]
 GLM_MODEL = "glm-4.6v-flashx"
