@@ -55,6 +55,7 @@ function buildScenarioCaption(scenarios) {
 const CHAT_MODELS = [
   { key: "glm-4.6v-flashx", label: "GLM 4.6 FlashX" },
   { key: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview" },
+  { key: "mimo-v2-omni", label: "MiMo V2 Omni" },
 ];
 
 
