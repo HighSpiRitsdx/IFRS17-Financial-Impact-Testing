@@ -9,5 +9,9 @@ preview_bucket_name = "your-ifrs17-doc-bucket-preview"
 
 [vars]
 GLM_MODEL = "glm-4.6v-flashx"
-GLM_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"`r`nGEMINI_MODEL = "gemini-3-flash-preview"`r`nGEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"`r`nIFRS17_DOC_KEY = "GLM.md"
-
+GLM_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+GEMINI_MODEL = "gemini-3-flash-preview"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+XIAOMI_MODEL = "MiMo-V2-Omni"
+XIAOMI_API_URL = "https://api.xiaomimimo.com/v1/chat/completions"
+IFRS17_DOC_KEY = "GLM.md"

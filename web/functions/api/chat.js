@@ -3,25 +3,28 @@ const DEFAULT_GLM_MODEL = "glm-4.6v-flashx";
 const DEFAULT_GLM_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
 const DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview";
 const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const DEFAULT_XIAOMI_MODEL = "MiMo-V2-Omni";
+const DEFAULT_XIAOMI_URL = "https://api.xiaomimimo.com/v1/chat/completions";
 
 const MODEL_REGISTRY = {
   "glm-4.6v-flashx": { provider: "glm", model: "glm-4.6v-flashx" },
   "gemini-3-flash-preview": { provider: "gemini", model: "gemini-3-flash-preview" },
+  "mimo-v2-omni": { provider: "xiaomi", model: "MiMo-V2-Omni" },
 };
 
 function buildSystemPrompt(activeTab) {
-  const tabHint = activeTab ? `?????????????${activeTab}?` : "";
+  const tabHint = activeTab ? `当前用户停留页面：${activeTab}。` : "";
   return [
-    "?? IFRS17 ????????????????",
+    "你是 IFRS17 财务影响测试平台的内置问答助手。",
     tabHint,
-    "?????????????????????????????????????????????????",
-    "???????????????????",
-    "?????????????????????????????",
-    "?????????????????????????????????????",
-    "????????????????????????",
-    "?????????????????????????????",
-    "????????? XXX0 ?? 0 ??? XXX?XXX1 ?? Y1 ? XXX?XXX2 ?? Y2 ? XXX??????",
-    "????????????????????????",
+    "请优先根据系统提供的知识文档、数字追溯结果和关联数据回答问题，不要编造系统中不存在的逻辑。",
+    "回答时先写结论，再补最必要的数据、原因或公式。",
+    "如果用户问业务实质，就回答业务含义和影响。",
+    "如果用户问数字原因，就回答该数字的来源、关键组成项和必要的中间值。",
+    "如果用户问公式，就回答公式、变量含义和最关键的依赖项。",
+    "如果问题超出当前文档或系统实现范围，请明确说明“当前文档/系统未定义”。",
+    "命名约定：XXX0 表示 0 时点的 XXX；XXX1 表示 Y1 的 XXX；XXX2 表示 Y2 的 XXX；月度口径统一写作 M1、M2、M3。",
+    "默认使用中文，回答尽量简短清晰。",
   ].filter(Boolean).join(" ");
 }
 
@@ -79,6 +82,12 @@ function resolveModel(selectedModel, env) {
       model: env.GEMINI_MODEL || registryEntry.model || DEFAULT_GEMINI_MODEL,
     };
   }
+  if (registryEntry.provider === "xiaomi") {
+    return {
+      provider: "xiaomi",
+      model: env.XIAOMI_MODEL || registryEntry.model || DEFAULT_XIAOMI_MODEL,
+    };
+  }
   return {
     provider: "glm",
     model: env.GLM_MODEL || registryEntry.model || DEFAULT_GLM_MODEL,
@@ -121,6 +130,12 @@ function timeoutMessage(label) {
   return `试验版本使用${label}，大模型偶尔返回超时，请再试一次。`;
 }
 
+function isTransientError(rawError) {
+  return /timeout|timed out|deadline|network|fetch|temporarily unavailable|temporarily overloaded/i.test(
+    String(rawError || "")
+  );
+}
+
 async function callGlm(env, model, messages) {
   if (!env.GLM_API_KEY) {
     throw new Error("服务端未配置 GLM_API_KEY");
@@ -148,10 +163,7 @@ async function callGlm(env, model, messages) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const rawError = payload?.error?.message || payload?.message || `GLM 调用失败：${response.status}`;
-    const errorMessage = /timeout|timed out|deadline|network|fetch/i.test(String(rawError))
-      ? timeoutMessage("GLM-4.6V-FlashX")
-      : rawError;
-    throw new Error(errorMessage);
+    throw new Error(isTransientError(rawError) ? timeoutMessage("GLM-4.6V-FlashX") : rawError);
   }
 
   return extractGlmReply(payload) || "当前没有拿到有效回复。";
@@ -192,13 +204,44 @@ async function callGemini(env, model, systemContexts, messages) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const rawError = payload?.error?.message || payload?.message || `Gemini 调用失败：${response.status}`;
-    const errorMessage = /timeout|timed out|deadline|network|fetch/i.test(String(rawError))
-      ? timeoutMessage("Gemini 3 Flash Preview")
-      : rawError;
-    throw new Error(errorMessage);
+    throw new Error(isTransientError(rawError) ? timeoutMessage("Gemini 3 Flash Preview") : rawError);
   }
 
   return extractGeminiReply(payload) || "当前没有拿到有效回复。";
+}
+
+async function callXiaomi(env, model, messages) {
+  if (!env.XIAOMI_API_KEY) {
+    throw new Error("服务端未配置 XIAOMI_API_KEY");
+  }
+
+  const url = env.XIAOMI_API_URL || DEFAULT_XIAOMI_URL;
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": env.XIAOMI_API_KEY,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        top_p: 0.7,
+        messages,
+      }),
+    });
+  } catch {
+    throw new Error(timeoutMessage("MiMo-V2-Omni"));
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const rawError = payload?.error?.message || payload?.message || `MiMo 调用失败：${response.status}`;
+    throw new Error(isTransientError(rawError) ? timeoutMessage("MiMo-V2-Omni") : rawError);
+  }
+
+  return extractGlmReply(payload) || "当前没有拿到有效回复。";
 }
 
 export async function onRequestPost(context) {
@@ -221,7 +264,9 @@ export async function onRequestPost(context) {
 
     const reply = runtime.provider === "gemini"
       ? await callGemini(env, runtime.model, systemContexts, conversation)
-      : await callGlm(env, runtime.model, [...systemContexts, ...conversation]);
+      : runtime.provider === "xiaomi"
+        ? await callXiaomi(env, runtime.model, [...systemContexts, ...conversation])
+        : await callGlm(env, runtime.model, [...systemContexts, ...conversation]);
 
     return Response.json({ reply });
   } catch (error) {
